@@ -1,6 +1,6 @@
 CPMAddPackage(
   NAME librfnm
-  GITHUB_REPOSITORY rfnm/librfnm
+  GITHUB_REPOSITORY sultanqasim/librfnm
   GIT_TAG main
   #OPTIONS
   #  "BUILD_SHARED_LIBS OFF"
