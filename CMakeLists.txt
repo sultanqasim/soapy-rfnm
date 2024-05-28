@@ -26,7 +26,8 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 
 
-
+add_compile_options(-fsanitize=address)
+add_link_options(-fsanitize=address)
 
 #
 # Dependencies
