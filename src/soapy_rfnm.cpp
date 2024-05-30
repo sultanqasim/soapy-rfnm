@@ -304,6 +304,8 @@ keep_waiting:
         m_readstream_time_diff = std::chrono::duration<double>(std::chrono::system_clock::now() - m_readstream_start_time).count();
         if (m_readstream_time_diff < ((double)timeoutUs) / 1000000.0) {
             goto keep_waiting;
+        } else {
+            spdlog::info("read timeout, got {} of {} within {} us", read_elems, numElems, timeoutUs);
         }
     }
 
