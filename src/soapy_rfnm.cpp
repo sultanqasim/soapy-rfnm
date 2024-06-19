@@ -43,6 +43,15 @@ SoapyRFNM::SoapyRFNM(const SoapySDR::Kwargs& args) {
         rx_chan_count = MAX_RX_CHAN_COUNT;
     }
 
+    // HACK: set the ADC IDs here because the RFNM kernel driver is hard coding
+    // them for a single daughterboard
+    size_t ch_id = 0;
+    for (size_t dgb_id = 0; dgb_id < 2; dgb_id++) {
+        for (size_t dgb_ch = 0; dgb_ch < lrfnm->s->hwinfo.daughterboard[dgb_id].rx_ch_cnt; dgb_ch++) {
+            lrfnm->s->rx.ch[ch_id++].adc_id = 2 * dgb_id + dgb_ch;
+        }
+    }
+
     // sane defaults
     uint16_t apply_mask = 0;
     for (size_t i = 0; i < rx_chan_count; i++) {
@@ -60,7 +69,6 @@ SoapyRFNM::SoapyRFNM(const SoapySDR::Kwargs& args) {
     //s->tx.ch[0].freq = RFNM_MHZ_TO_HZ(2450);
     //s->tx.ch[0].path = s->tx.ch[0].path_preferred;
     //s->tx.ch[0].samp_freq_div_n = 2;
-
 }
 
 SoapyRFNM::~SoapyRFNM() {
