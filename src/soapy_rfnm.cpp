@@ -855,24 +855,35 @@ void SoapyRFNM::setRFNM(uint16_t applies) {
 }
 
 // only return data once a buffer has been dequeued from every active channel
-// TODO: handle dropped/skipped buffers that could result in channel desync
 rfnm_api_failcode SoapyRFNM::rx_dqbuf_multi(uint32_t wait_for_ms) {
     rfnm_api_failcode ret = RFNM_API_OK;
     auto timeout = std::chrono::system_clock::now() + std::chrono::milliseconds(wait_for_ms);
+    uint64_t expected_cc = UINT64_MAX;
 
     for (size_t channel = 0; channel < MAX_RX_CHAN_COUNT; channel++) {
-        if (lrfnm->s->rx.ch[channel].enable != RFNM_CH_ON || pending_rx_buf[channel]) {
+        if (lrfnm->s->rx.ch[channel].enable != RFNM_CH_ON) {
             continue;
         }
 
-        uint32_t wait_ms = 0;
-        auto time_remaining = timeout - std::chrono::system_clock::now();
-        if (time_remaining > std::chrono::duration<int64_t>::zero()) {
-            wait_ms = std::chrono::duration_cast<std::chrono::milliseconds>(time_remaining).count();
+        if (!pending_rx_buf[channel]) {
+            uint32_t wait_ms = 0;
+            auto time_remaining = timeout - std::chrono::system_clock::now();
+            if (time_remaining > std::chrono::duration<int64_t>::zero()) {
+                wait_ms = std::chrono::duration_cast<std::chrono::milliseconds>(time_remaining).count();
+            }
+
+            ret = lrfnm->rx_dqbuf(&pending_rx_buf[channel], librfnm_rx_chan_flags[channel], wait_ms);
+            if (ret) break;
         }
 
-        ret = lrfnm->rx_dqbuf(&pending_rx_buf[channel], librfnm_rx_chan_flags[channel], wait_ms);
-        if (ret) break;
+        if (expected_cc == UINT64_MAX) {
+            expected_cc = pending_rx_buf[channel]->usb_cc;
+        } else if (pending_rx_buf[channel]->usb_cc != expected_cc) {
+            // copy CC outside packed struct for GCC spdlog compatibility
+            uint64_t cc = pending_rx_buf[channel]->usb_cc;
+            spdlog::warn("channel {} cc misalignment {} {}", channel, cc, expected_cc);
+            // TODO: resynchronize if this happens
+        }
     }
 
     return ret;
